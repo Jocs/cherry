@@ -46,38 +46,54 @@ var cherry = (function(document){
   	return selector.match(CHOP);
   }
   //---------------Dom 操作常用函数------------------
-  HTMLElement.prototype.previousElement = function(){
-    var element = this;
-    while(element && (element = element.previousSibling) && element.nodeType !== 1) continue;
-    return element;
-  }
-  HTMLElement.prototype.nextElement = function(){
-    return this.nextElementSibling;
-  }
-  HTMLElement.prototype.firstChildElement = function(){
-    var element = this.firstChild;
-    return (element.nodeType == 1)? element: element.nextElementSibling;
-  }
-  HTMLElement.prototype.childElements = function(){
-    var elements = [],element = this.firstChildElement();
+  HTMLElement.addGetter = function(name, func){
+      Object.defineProperty(this.prototype, name, {
+        configuable : true,
+        enumerable  : false,
+        get         : function(){
+              return func(this);
+        }
+      });
+      return this;
+  };
+  HTMLElement.addGetter('isElementNode', function(self){
+    return !!(self && self.nodeType === 1);
+  });
+
+  HTMLElement.addGetter('preEleSibling', function(self){
+      var element = self;
+      while(element && (element = element.previousSibling) && !element.isElementNode) continue;
+      return element;
+  });
+
+  HTMLElement.addGetter('nextEleSibling', function(self){
+    return self.nextElementSibling;
+  });
+  HTMLElement.addGetter('firstEleChild', function(self){
+    return (self.firstChild.isElementNode)? 
+            self.firstChild : self.firstChild.nextElementSibling;
+  });
+    
+  HTMLElement.addGetter('childEleNodes', function(self){
+    var elements = [], element = self.firstElementChild;
     while(element){
       elements.push(element);
-      element = element.nextElement();
-      }
+      element = element.nextElementSibling;
+    }
     return elements;
-  };
-   HTMLElement.prototype.descendantElements = function(){
-    var desElements = [];
-    (function collectElements(elements){
-      Array.prototype.push.apply(desElements,elements);
-      for(var i =0; i < elements.length; i++){
-        if(elements[i].childElements()){
-          collectElements(elements[i].childElements());
+  });
+  HTMLElement.addGetter('desEleNodes', function(self){
+    var elements = [];
+    (function collectElements(elems){
+      Array.prototype.push.apply(elements, elems);
+      for(var i = 0; i < elems.length; i++){
+        if(elems[i].childEleNodes){
+          collectElements(elems[i].childEleNodes);
         }
       }
-    })(this.childElements());
-    return desElements || [];
-  }
+    })(self.childEleNodes);
+    return elements;
+  });
  // ------------------------------------------------
   var $selectors = {};
   $selectors['#'] = function(result, from, id){
@@ -96,7 +112,15 @@ var cherry = (function(document){
   //后代选择器
   $selectors[' '] = function(result, from, tagName){
   	for(var i = 0; i < from.length; i++){
-      Array.prototype.push.apply(result, from[i].getElementsByTagName(tagName));
+      from[i] = (from[i] == document)? document.documentElement : from[i];
+      if(tagName === '*'){
+        Array.prototype.push.apply(result, from[i].desEleNodes);
+      } else {
+        for(var j = 0; j < from[i].desEleNodes.length; j++ ){
+          console.log(from[i].desEleNodes[j].tagName);
+          if(from[i].desEleNodes[j].tagName.toLowerCase() == tagName) result.push(from[i].desEleNodes[j]);
+        }
+      }                   
     }
     return result || [];
   };

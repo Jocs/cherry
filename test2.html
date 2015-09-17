@@ -5,28 +5,55 @@
 	<title>Document</title>
 	<script>
 		onload = function(){
+			HTMLElement.addGetter = function(name, func){
+			    Object.defineProperty(this.prototype, name, {
+			      configuable : true,
+			      enumerable  : false,
+			      get         : function(){
+			           return func(this);
+			      }
+			    });
+			    return this;
+			};
+			HTMLElement.addGetter('isElementNode', function(self){
+				return !!(self && self.nodeType === 1);
+			});
 
-			HTMLElement.prototype.previousElement = function(){
-			  	var element = this;
-			  	while(element && (element = element.previousSibling) && element.nodeType !== 1) continue;
-			  	return element;
-			  }
-			  HTMLElement.prototype.nextElement = function(){
-			  	return this.nextElementSibling;
-			  }
-			  HTMLElement.prototype.firstChildElement = function(){
-			  	var element = this.firstChild;
-			  	return (element&&element.nodeType == 1)? element: element.nextElementSibling;
-			  }
-			  HTMLElement.prototype.childElements = function(){
-			  	var elements = [],element = this.firstChildElement();
-			  	while(element){
-			  		elements.push(element);
-			  		element = element.nextElement();
-			  	  }
-			  	return elements;
-			  };
-			  HTMLElement.prototype.descendantElements = function(){
+			HTMLElement.addGetter('preEleSibling', function(self){
+			    var element = self;
+			    while(element && (element = element.previousSibling) && !element.isElementNode) continue;
+			    return element;
+			});
+
+			HTMLElement.addGetter('nextEleSibling', function(self){
+				return self.nextElementSibling;
+			});
+			HTMLElement.addGetter('firstEleChild', function(self){
+				return (self.firstChild.isElementNode)? 
+				       self.firstChild : self.firstChild.nextElementSibling;
+			});
+		
+			HTMLElement.addGetter('childEleNodes', function(self){
+				var elements = [], element = self.firstElementChild;
+				while(element){
+					elements.push(element);
+					element = element.nextElementSibling;
+				}
+				return elements;
+			});
+			HTMLElement.addGetter('desEleNodes', function(self){
+				var elements = [];
+				(function collectElements(elems){
+					Array.prototype.push.apply(elements, elems);
+					for(var i = 0; i < elems.length; i++){
+						if(elems[i].childEleNodes){
+							collectElements(elems[i].childEleNodes);
+						}
+					}
+				})(self.childEleNodes);
+				return elements;
+			});
+			  /*HTMLElement.prototype.descendantElements = function(){
 			  	var desElements = [];
 			  	(function collectElements(elements){
 			  		Array.prototype.push.apply(desElements,elements);
@@ -37,8 +64,8 @@
 			  		}
 			  	})(this.childElements());
 			  	return desElements || [];
-			  }
-			  console.log(document.documentElement.descendantElements());
+			  }*/
+			console.log(document.documentElement.desEleNodes);
 		}
 	</script>
 </head>
