@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script src='cherry.js'></script>
+	<script>
+		window.onload = function(){
+		    var nodes = cherry('body .hello #inner');
+		    for(var i = 0; i < nodes.length; i ++){
+		    	nodes[i].style.color = 'red';
+		    }
+		};
+	</script>
+</head>
+<body>
+	<div class='hello'>nice
+		<div id='inner'>to meet you!</div>
+	</div>
+</body>
+
+</html>

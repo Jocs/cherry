@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script>
+		onload = function(){
+
+			HTMLElement.prototype.previousElement = function(){
+			  	var element = this;
+			  	while(element && (element = element.previousSibling) && element.nodeType !== 1) continue;
+			  	return element;
+			  }
+			  HTMLElement.prototype.nextElement = function(){
+			  	return this.nextElementSibling;
+			  }
+			  HTMLElement.prototype.firstChildElement = function(){
+			  	var element = this.firstChild;
+			  	return (element&&element.nodeType == 1)? element: element.nextElementSibling;
+			  }
+			  HTMLElement.prototype.childElements = function(){
+			  	var elements = [],element = this.firstChildElement();
+			  	while(element){
+			  		elements.push(element);
+			  		element = element.nextElement();
+			  	  }
+			  	return elements;
+			  };
+			  HTMLElement.prototype.descendantElements = function(){
+			  	var desElements = [];
+			  	(function collectElements(elements){
+			  		Array.prototype.push.apply(desElements,elements);
+			  		for(var i =0; i < elements.length; i++){
+			  			if(elements[i].childElements()){
+			  				collectElements(elements[i].childElements());
+			  			}
+			  		}
+			  	})(this.childElements());
+			  	return desElements || [];
+			  }
+			  console.log(document.documentElement.descendantElements());
+		}
+	</script>
+</head>
+<body>
+	<div>hahaha</div>
+	<div id='div'>
+	    hello
+		<div>world</div>
+		<div>luoran</div>
+	</div>
+	<div>wuuwwuwuw</div>
+</body>
+</html>
