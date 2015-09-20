@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script src='bower_components/jquery/dist/jquery.js'></script>
+</head>
+<body>
+	<div id='div'>
+		<span></span>
+	    我是罗冉
+		<p>
+		<span>你的</span>
+		<!--hello-->
+		<span style='display:none'>你好</span>
+		hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,hahaha,nice to ,meee toyou ,
+		</p>
+		<p>第二个</p>
+	</div>
+	
+	<script>
+	    //chrome 支持innerText和textContent。 fireFox仅支持textContent。
+	    //document.textContent === null
+	    // ******************innerText 和 textContent的区别和相同点 ***********************
+	    // 1. textContent will return all tag's contents, including script and style, 
+	    // but innerText will not!
+	    // 2. textContent will return 'dispaly: none' element's content, but innerText
+	    // will not!
+	    // 3. both of the two property will not return this comments.
+	  Node.addGetter = function(name, func){
+	      Object.defineProperty(this.prototype, name, {
+	        configuable : true,
+	        enumerable  : false,
+	        get         : function(){
+	              return func(this);
+	        }
+	      });
+	      return this;
+	  };
+	  //isElementNode函数用来判断Dom元素是否是element节点
+	  Node.addGetter('isElementNode', function(self){
+	    return !!(self && self.nodeType == 1);
+	  });
+	  Node.addGetter('isTextNode', function(self){
+	  	return!!(self && self.nodeType == 3 && /\S/.test(self.nodeValue));
+	  });
+	  Node.addGetter('textCont', function(self){
+	  	return self.textContent || self.innerText || _getTextContent(self);
+	  });
+	  //_getTextContentf返回node的所有文本，包括隐藏元素，和textContent相同
+	  function _getTextContent($element){
+	  	var content = '';
+	  	Array.prototype.forEach.call($element.childNodes, function(e){
+	  		if(e.isTextNode) content += e.nodeValue;
+	  		// nodeType === 11, FRAGMENT_NODE
+	  		else if(e.isElementNode || e.nodeType === 11) content += _getTextContent(e);
+	  	});
+	  	return content;
+	  }
+	  $('#div p:last').css('color', 'red');
+		
+	</script>
+</body>
+</html>

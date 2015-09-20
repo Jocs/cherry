@@ -6,7 +6,7 @@
 	<script src='cherry.js'></script>
 	<script>
 		window.onload = function(){
-		    var nodes = cherry('body .hello #inner');
+		    var nodes = cherry('#inner,a');
 		    for(var i = 0; i < nodes.length; i ++){
 		    	nodes[i].style.color = 'red';
 		    }
@@ -16,7 +16,9 @@
 <body>
 	<div class='hello'>nice
 		<div id='inner'>to meet you!</div>
+		<a href="www.baidu.com">link</a>
 	</div>
+	<div class='haha'>hahaha</div>
 </body>
 
 </html>

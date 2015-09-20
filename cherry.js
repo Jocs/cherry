@@ -1,5 +1,6 @@
 /*cherry is a css selector*/
-//
+// this main file include css level1 css selcetor
+// create by luoran 
 var cherry = (function(document){
   //---------------------the main function---------------------------------------
   var cherry = function(selector, from){
@@ -10,12 +11,11 @@ var cherry = (function(document){
   	var selectorString = selector 
   	                     && (~Object.prototype.toString.call(selector).indexOf('String'))
   	                     && parseSelector(selector);
-  	    console.log(selectorString);
   	var selectors = selectorString.split(COMMA);
-  	
   	for(var i = 0; i < selectors.length; i++ ){
   		var chopedArray = [], j = 0, token, filter, $from = froms;
   		chopedArray = chop(selectors[i]);
+      console.log(chopedArray);
   		while(chopedArray[j]){
   			token = chopedArray[j++];
   			filter = chopedArray[j++];
@@ -40,9 +40,12 @@ var cherry = (function(document){
   	       .replace(WHITESPACE, '$1')
   	       .replace(ADD_STAR, '$1*$2');
   }
-  //chop函数用来把选择器切分为单个token，filter等
+  // chop函数用来把选择器切分为单个token，filter等
+  // CHOP正则表达式就是用来切分选择器字符串的「分界点」，token包括(' ','#','.',':','~','+','>')
+  // 分别为后代选择器，id选择器，类选择器，伪类选择器，选择目标元素以后的兄弟元素选择器，选择目标元素
+  // 下一个相邻元素的选择器，子选择器。
   var STANDAR_SELECT = /^[^\s>~+]/;
-  var CHOP = /[\s>+~#.]|[^\s>+~#.]+/g;
+  var CHOP = /[\s>+~#.:]|[^\s>+~#.:]+/g;
   function chop(selector){
   	if(STANDAR_SELECT.test(selector)) selector = ' ' + selector;
   	return selector.match(CHOP);
@@ -52,7 +55,7 @@ var cherry = (function(document){
   //lastElementChild, firstElementChild, childElementCount属性。因此需要对这些属性进行
   //浏览器兼容处理
   // ************* 注意下面是一个错误示范 **********************
-  // addGeter静态方法应该添加到Node构造函数上面
+  // addGeter静态方法应该添加到Node构造函数上面，比应该添加到HTMLElement上
   // HTMLElement.addGetter = function(name, func){
   //     Object.defineProperty(this.prototype, name, {
   //       configuable : true,
@@ -63,6 +66,7 @@ var cherry = (function(document){
   //     });
   //     return this;
   // };
+  // **********************以上是错误示范*************************
   Node.addGetter = function(name, func){
       Object.defineProperty(this.prototype, name, {
         configuable : true,
@@ -76,6 +80,10 @@ var cherry = (function(document){
   //isElementNode函数用来判断Dom元素是否是element节点
   Node.addGetter('isElementNode', function(self){
     return !!(self && self.nodeType == 1);
+  });
+  // isTextNode用来判断节点是否是文本节点，并且不是空的文本节点。
+  Node.addGetter('isTextNode', function(self){
+    return!!(self && self.nodeType == 3 && /\S/.test(self.nodeValue));
   });
 
   Node.addGetter('prevEleSibling', function(self){
@@ -130,6 +138,28 @@ var cherry = (function(document){
     })(self.childrenEle);
     return elements;
   }); 
+  // textCont用来获取节点中所有文本内容
+  //chrome 支持innerText和textContent。 fireFox仅支持textContent。
+  //document.textContent === null
+  // ******************innerText 和 textContent的区别和相同点 ***********************
+  // 1. textContent will return all tag's contents, including script and style, 
+  // but innerText will not!
+  // 2. textContent will return 'dispaly: none' element's content, but innerText
+  // will not!
+  // 3. both of the two property will not return this comments.
+  Node.addGetter('textCont', function(self){
+    return self.textContent || self.innerText || _getTextContent(self);
+  });
+  //_getTextContentf返回node的所有文本，包括隐藏元素，和textContent相同
+  function _getTextContent($element){
+    var content = '';
+    Array.prototype.forEach.call($element.childNodes, function(e){
+      if(e.isTextNode) content += e.nodeValue;
+      // nodeType === 11, FRAGMENT_NODE
+      else if(e.isElementNode || e.nodeType === 11) content += _getTextContent(e);
+    });
+    return content;
+  }
  // ---------------------获取DOM元素常用函数结束---------------------------
  // ---------------------选择器对象---------------------------------------
   var $selectors = {};
@@ -139,10 +169,12 @@ var cherry = (function(document){
   	}
   	return result || [];
   };
+  //类选择器：
   $selectors['.'] = function(result, from, className){
-  	var CLASS_NAME = new RegExp('^|\\s' + className + '$|\\s');
-  	for(var i = 0; i < from.length; i ++){
-  		if(CLASS_NAME.test(from[i].classNmae)) result.push(from[i]);
+  	var CLASS_NAME = new RegExp('(^|\\s)' + className + '(\\s|$)');
+    var i, element;
+  	for(i = 0; (element = from[i]); i++ ){
+  		if(CLASS_NAME.test(element.className)) result.push(element);
   	}
   	return result || [];
   };
@@ -154,7 +186,6 @@ var cherry = (function(document){
         Array.prototype.push.apply(result, from[i].desEleNodes);
       } else {
         for(var j = 0; j < from[i].desEleNodes.length; j++ ){
-          console.log(from[i].desEleNodes[j].tagName);
           if(from[i].desEleNodes[j].tagName.toLowerCase() == tagName) 
             result.push(from[i].desEleNodes[j]);
         }
@@ -162,7 +193,32 @@ var cherry = (function(document){
     }
     return result || [];
   };
+  //伪类选择器，
+  $selectors[':'] = function($result, $from, $pseudoClass, $arguments){
+    var $test = null;
+    if(pseudoClasses[$pseudoClass]) $test = pseudoClasses[$pseudoClass];
+    for(var i = 0, len = $from.length; i < len; i++ ){
+      if($test($from[i])) $result.push($from[i]);
+    }
+    return $result;
+  };
   //------------------------选择器对象结束--------------------------------
+  //------------------------pseudo-classes-------------------------------
+  var pseudoClasses = {};
+  // link pseudoClass 用来判断一个元素是否是：link伪类选择器，返回值为：true or false；
+  pseudoClasses['link'] = function($element){
+    var links = document.links;
+    return Array.prototype.some.call(links, function(ele){
+      return ele === $element;
+    });
+  };
+  //下面几个伪类属于css1选择器，但是jQuery中没有实现这些选择器?
+  pseudoClasses['visited'] = function($element){}
+  pseudoClasses['active'] = function($element){}
+  pseudoClasses['hover'] = function($element){}
+  pseudoClasses['first-letter'] = function($element){}
+  pseudoClasses['first-line'] = function($element){}
+  //------------------------pseudo-calsses end---------------------------
   //select函数用来选择在指定token，filter下的dom元素
   //token是选择器的标签，如"#"是id选择器，"."是类选择器，">"是子选择器等
   //filter是元素标签名，tagName。或者id，或者className等

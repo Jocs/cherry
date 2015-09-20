@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+</head>
+<body>
+	<script>
+		var cherry = (function(){
+			var cherry = function(){	
+				console.log(modules);
+			};
+			var modules = {};
+			var selector = {};
+			cherry.addModule = function(name, $script){
+					eval('var script = ' + String($script));
+					modules[name] = new script();
+				};
+			return cherry;
+		})();
+
+		cherry.addModule('dom-level1', function(){
+			selector['>'] = 'hello';
+		});
+		cherry();
+	</script>
+</body>
+</html>
