@@ -5,28 +5,48 @@ var cherry = (function(document){
   //---------------------the main function---------------------------------------
   var cherry = function(selector, from){
   	var COMMA = /\s*(?:,)\s*/;
-  	var results = [];
-  	var froms = from?(from.constructor == 'Array')? from : [from] : [document];
+  	var results = [], 
+        $useCache = cherry.cache && !from;
+  	var froms = from? (from.constructor == 'Array')? from : [from] : [document];
   	//console.log(froms);
   	var selectorString = selector 
   	                     && (~Object.prototype.toString.call(selector).indexOf('String'))
   	                     && parseSelector(selector);
   	var selectors = selectorString.split(COMMA);
   	for(var i = 0; i < selectors.length; i++ ){
-  		var chopedArray = [], j = 0, token, filter, $from = froms;
+  		var chopedArray = [], j = 0, token, filter, cacheSelector = '', $from = froms;
   		chopedArray = chop(selectors[i]);
       console.log(chopedArray);
   		while(chopedArray[j]){
   			token = chopedArray[j++];
   			filter = chopedArray[j++];
-  			$from = select($from, token, filter); 
+        cacheSelector += token + filter;
+        if($useCache && cache[cacheSelector]){
+          $from = cache[cacheSelector];
+        } else {
+          $from = select($from, token, filter);
+          if($useCache) cache[cacheSelector] = $from;
+        }
   		}
   		results = results.concat($from);
   	}
-     console.log(results);
+    //console.log(cache);
+    console.log(results);
   	return results;
   };
   // --------------------------------main function end-------------------------------
+  // --------------------------------DOM element 缓存---------------------------------
+  var cache = {};
+  //默认选择器是缓存的
+  cherry.cache = true;
+  //删除某一选择器的缓存，如果不传参数，就删除整个选择器缓存
+  cherry.cleanCache = function($selector){
+    if($selector){
+      var cacheSelector = chop($selector).join('');
+      if(cache[cacheSelector]) delete cache[cacheSelector];
+    } else cache = {};
+  }
+  //---------------------------------DOM element 缓存 end-----------------------------
   //关于WHITESPACE正则表达式：首先我们理解下/\s*(^|$)\s*/g
   //这个表达式可以用来清除字符串前后的空白符，比如"   hello   ".replace(/\s*(^|$)\s*/g, '$1'); // "hello"
   //现在就好理解下面的WHITESPACE正则表达式了，起作用是用来清除选择器字符串中一些不必要的空白符。
