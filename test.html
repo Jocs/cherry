@@ -3,22 +3,18 @@
 <head>
 	<meta charset="UTF-8">
 	<title>Document</title>
-	<script src='cherry.js'></script>
 	<script>
-		window.onload = function(){
-		    var nodes = cherry('#inner,a');
-		    for(var i = 0; i < nodes.length; i ++){
-		    	nodes[i].style.color = 'red';
-		    }
-		};
+		onload = function(){
+			var div = document.querySelector(':root');
+			console.log(div)
+			console.log(!!div.getAttribute('type'));
+
+		}
+		
 	</script>
 </head>
 <body>
-	<div class='hello'>nice
-		<div id='inner'>to meet you!</div>
-		<a href="www.baidu.com">link</a>
-	</div>
-	<div class='haha'>hahaha</div>
+	<a id="hello" class='haha' href='http://www.baidu.com'>haha</a>
+	<input type id='input'>
 </body>
-
 </html>

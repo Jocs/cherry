@@ -3,38 +3,276 @@
 // create by luoran 
 var cherry = (function(document){
   //---------------------the main function---------------------------------------
-  var cherry = function(selector, from){
-  	var COMMA = /\s*(?:,)\s*/;
-  	var results = [], 
-        $useCache = cherry.cache && !from;
-  	var froms = from? (from.constructor == 'Array')? from : [from] : [document];
-  	//console.log(froms);
-  	var selectorString = selector 
-  	                     && (~Object.prototype.toString.call(selector).indexOf('String'))
-  	                     && parseSelector(selector);
-  	var selectors = selectorString.split(COMMA);
+  var cherry = function($selector, $from){
+  	var COMMA = /\s*(?:,)\s*/, 
+        results = [],
+        $useCache = cherry.cache && !$from,
+        selectors;
+
+  	$from = $from? ($from.constructor == 'Array')? $from : [$from] : [document.documentElement];
+  	$selector = $selector 
+  	           && (~Object.prototype.toString.call($selector).indexOf('String'))
+  	           && parseSelector($selector);
+  	selectors = $selector.split(COMMA);
   	for(var i = 0; i < selectors.length; i++ ){
-  		var chopedArray = [], j = 0, token, filter, cacheSelector = '', $from = froms;
-  		chopedArray = chop(selectors[i]);
-      console.log(chopedArray);
+  		var chopedArray = chop(selectors[i]), 
+          j = 0, token, filter, arguments = '',
+          cacheSelector = '', from = $from;
+  		console.log(chopedArray)
   		while(chopedArray[j]){
   			token = chopedArray[j++];
   			filter = chopedArray[j++];
         cacheSelector += token + filter;
+
+        if(chopedArray[j] === '('){
+          while(chopedArray[j++] !==')' && j < chopedArray.length){
+            arguments += chopedArray[j];
+          }
+          arguments = arguments.slice(0, -1);
+          cacheSelector += '(' + arguments + ')';
+        }
+
         if($useCache && cache[cacheSelector]){
-          $from = cache[cacheSelector];
+          from = cache[cacheSelector];
         } else {
-          $from = select($from, token, filter);
-          if($useCache) cache[cacheSelector] = $from;
+          from = select(from, token, filter, arguments);
+          if($useCache) cache[cacheSelector] = from;
         }
   		}
-  		results = results.concat($from);
+  		results = results.concat(from);
   	}
-    //console.log(cache);
-    console.log(results);
   	return results;
   };
   // --------------------------------main function end-------------------------------
+  // select 函数开始-------------------------------------------------------------------
+  //select函数用来选择在指定token，filter下的dom元素
+  //token是选择器的标签，如"#"是id选择器，"."是类选择器，">"是子选择器等
+  //filter是元素标签名，tagName。或者id值，或者className值等
+  function select($from, $token, $filter, $arguments){
+    var results = [];
+    if($selectors[$token]){
+      $selectors[$token](results, $from, $filter, $arguments);
+    }
+    return results;
+  }
+  // select 函数结束-------------------------------------------------------------------
+  // ---------------------选择器对象----------------------------------------------------
+  var $selectors = {};
+  //id 选择器'#'
+  $selectors['#'] = function(result, from, id){
+    for(var i = 0; i < from.length; i++){
+      if(from[i].id == id) result.push(from[i]);
+    }
+    return result || [];
+  };
+  //类选择器 '.'
+  $selectors['.'] = function(result, from, className){
+    var CLASS_NAME = new RegExp('(^|\\s)' + className + '(\\s|$)');
+    var i, element;
+    for(i = 0; (element = from[i]); i++ ){
+      if(CLASS_NAME.test(element.className)) result.push(element);
+    }
+    return result || [];
+  };
+  //后代选择器' '
+  $selectors[' '] = function(result, from, tagName){
+    for(var i = 0; i < from.length; i++){
+      //from[i] = (from[i] == document)? document.documentElement : from[i];
+      if(tagName === '*'){
+        Array.prototype.push.apply(result, from[i].desEleNodes);
+      } else {
+        for(var j = 0; j < from[i].desEleNodes.length; j++ ){
+          if(from[i].desEleNodes[j].tagName.toLowerCase() == tagName) 
+            result.push(from[i].desEleNodes[j]);
+        }
+      }                   
+    }
+    return result || [];
+  };
+  // 子选择器'>'
+  $selectors['>'] = function($result, $from, $tagName){
+    for(var i = 0; i < $from.length; i ++){
+       //$from[i] = ($from[i] === document)? document.documentElement : $from[i];
+       if($tagName === '*'){
+        Array.prototype.push.apply(result, $from[i].childrenEle);
+       } else {
+        Array.prototype.forEach.call($from[i].childrenEle, function(ele){
+          if(ele.tagName.toLowerCase() === $tagName) $result.push(ele);
+        });
+       }
+    }
+    return $result || [];
+  };
+  // 临近元素选择器'+'
+  $selectors['+'] = function($result, $from, $tagName){
+    for(var i = 0, len = $from.length; i < len; i ++){
+      if($from[i].nextEleSibling && $from[i].nextEleSibling.tagName.toLowerCase() === $tagName){
+        $result.push($from[i].nextEleSibling);
+      }
+    }
+    return $result;
+  };
+  // 排在其后面的所有兄弟元素选择器 '~'
+  $selectors['~'] = function($result, $from, $tagName){
+    for(var i = 0, len = $from.length; i < len; i ++){
+      Array.prototype.forEach.call($from[i].afterEleSiblings, function(ele){
+        if(ele.tagName.toLowerCase() === $tagName) $result.push(ele);
+      });
+    }
+    return $result;
+  };
+  //伪类选择器':'
+  $selectors[':'] = function($result, $from, $pseudoClass, $arguments){
+    var $test = null;
+    if(pseudoClasses[$pseudoClass]) $test = pseudoClasses[$pseudoClass];
+    if($pseudoClass == 'root') $from.push(document.documentElement);
+    for(var i = 0, len = $from.length; i < len; i++ ){
+      if($test($from[i], $arguments)) $result.push($from[i]);
+    }
+    return $result;
+  };
+  // 属性选择器'@'
+  $selectors['@'] = function($result, $from, $attributeId){
+    var test = null;
+    if(attributeSelectors[$attributeId]) test = attributeSelectors[$attributeId].test;
+    for(var i = 0, len = $from.length; i < len; i ++){
+      if(test($from[i])) $result.push($from[i]);
+    }
+  }
+  //------------------------选择器对象结束--------------------------------
+  //------------------------pseudo-classes-------------------------------
+  var pseudoClasses = {};
+  // 以下是CSS3以前的伪类选择器
+  // link pseudoClass 用来判断一个元素是否是：link伪类选择器，返回值为：true or false；
+  pseudoClasses['link'] = function($element){
+    var links = document.links;
+    return Array.prototype.some.call(links, function(ele){
+      return ele === $element;
+    });
+  };
+  pseudoClasses['lang'] = function($element, $value){
+    console.log($value)
+    if($element && $element.getAttribute('lang'))
+      return new RegExp('^' + $value).test($element.getAttribute('lang'));
+  };
+  //下面几个伪类属于css1选择器，但是jQuery中没有实现这些选择器?
+  pseudoClasses['visited'] = function($element){}
+  pseudoClasses['active'] = function($element){}
+  pseudoClasses['hover'] = function($element){}
+  pseudoClasses['first-letter'] = function($element){}
+  pseudoClasses['first-line'] = function($element){}
+  //CSS 3 伪类选择器
+  pseudoClasses['first-child'] = function($element){
+    return !$element.prevEleSibling;
+  };
+  pseudoClasses['last-child'] = function($element){
+    return !$element.nextEleSibling;
+  };
+  // root选择器问题：$from中不可能有document.documentElement 啊？？？
+  //root 选择器暂时还不能够使用
+  pseudoClasses['root'] = function($element){
+    return $element === $element.ownerDocument.documentElement;
+  };
+  pseudoClasses['first-of-type'] = function($element){
+    var parent = $element.parentNode;
+    var firstChild = parent.firstEleChild;
+    while(firstChild && 
+          firstChild.tagName.toLowerCase() !== $element.tagName.toLowerCase()){
+      firstChild = firstChild.nextEleSibling;
+    }
+    return firstChild === $element;
+  };
+  pseudoClasses['last-of-type'] = function($element){
+    var parent = $element.parentNode;
+    var lastChild = parent.lastEleChild;
+    while(lastChild && lastChild.tagName.toLowerCase() !== $element.tagName.toLowerCase()){
+      lastChild = lastChild.prevEleSibling;
+    }
+    return lastChild === $element;
+  };
+  pseudoClasses['only-of-type'] = function($element){
+    var parent = $element.parentNode;
+    var tagName = $element.tagName.toLowerCase();
+    return parent.getElementsByTagName(tagName).length === 1;
+  };
+  //子考虑元素节点
+  pseudoClasses['only-child'] = function($element){
+    return !$element.prevEleSibling && !$element.nextEleSibling;
+  }
+
+  //jQuery中的contains 伪类选择器的实现
+  pseudoClasses['contains'] = function($element, $text){
+    return new RegExp($text.slice(1,-1)).test($element.textCont);
+  };
+  
+  
+  //------------------------pseudo-calsses end---------------------------
+
+  /*属性选择器相关的方法*/
+  var attributeSelectors = [];
+  var AttributeSelector = {match: /\[([\w-]+(\|[\w-]+)?)\s*(\W?=)?\s*([^\]]*)\]/};
+  AttributeSelector.tests = {};
+  AttributeSelector.NAMESPACE = '/\:/g';
+  AttributeSelector.PREFIX = '@';
+
+  AttributeSelector.parse = function($selector){
+    var matches, attrId;
+    $selector = $selector.replace(this.NAMESPACE, '|');
+    matches = $selector.match(this.match);
+    if(matches)
+      attrId = this.getAttrId(matches[0], matches[1], matches[2], matches[3], matches[4]);
+    return $selector = $selector.replace(this.match, attrId);
+  };
+
+  AttributeSelector.getAttrId = function($match, $attribute, $nameSpace, $compare, $value){
+    var key = this.PREFIX + $match, attributeSelector;
+    if(!attributeSelectors[key]){
+      attributeSelector = this.create($attribute, $compare || '', $value || '');
+      attributeSelectors[key] = attributeSelector;
+      attributeSelectors.push(attributeSelector);
+    }
+    return attributeSelectors[key].id;
+  };
+  AttributeSelector.create = function($propertyName, $compare, $value){
+    var attributeSelector = {}, test;
+    attributeSelector.id = this.PREFIX + attributeSelectors.length;
+    attributeSelector.name = $propertyName;
+    test = this.tests[$compare];
+    attributeSelector.test = function(ele){
+      return test? test(ele.getAttribute($propertyName), $value.slice(1,-1)) : false;
+    }
+    return attributeSelector;
+  };
+
+  AttributeSelector.tests[''] = function($attribute){
+    return $attribute !== null;
+  };
+  AttributeSelector.tests['='] = function($attribute, $value){
+    return $attribute === $value;
+  };
+  AttributeSelector.tests['~='] = function($attribute, $value){
+    return new RegExp('(^| )' + $value + '( |$)').test($attribute);
+  };
+  AttributeSelector.tests['|='] = function($attribute, $value){
+    return new RegExp('^' + $value + '(-|$)').test($attribute);
+  };
+  // CSS 3
+  AttributeSelector.tests['*='] = function($attribute, $value){
+    return new RegExp($value).test($attribute);
+  };
+  AttributeSelector.tests['^='] = function($attribute, $value){
+    return new RegExp('^' + $value).test($attribute);
+  };
+  AttributeSelector.tests['$='] = function($attribute, $value){
+    return new RegExp($value + '$').test($attribute);
+  };
+
+  //monkey-patch
+  var _parseSelector = parseSelector;
+  parseSelector = function($selector){
+    return _parseSelector(AttributeSelector.parse($selector));
+  };
+  /*属性选择器相关的方法结束*/
   // --------------------------------DOM element 缓存---------------------------------
   var cache = {};
   //默认选择器是缓存的
@@ -47,14 +285,15 @@ var cherry = (function(document){
     } else cache = {};
   }
   //---------------------------------DOM element 缓存 end-----------------------------
-  //关于WHITESPACE正则表达式：首先我们理解下/\s*(^|$)\s*/g
-  //这个表达式可以用来清除字符串前后的空白符，比如"   hello   ".replace(/\s*(^|$)\s*/g, '$1'); // "hello"
+  //关于WHITESPACE正则表达式：首先理解：/\s*(^|$)\s*/g
+  //这个表达式可以用来清除字符串前后的空白符，比如"   hello   ".replace(/\s*(^|$)\s*/g, '$1'); 
+  // "hello"
   //现在就好理解下面的WHITESPACE正则表达式了，起作用是用来清除选择器字符串中一些不必要的空白符。
   //比如子选择器多余空格（一个空格就够了），'>','+','~','(',')',','前后的空白符。使得选择器
   //字符串能够成为标准的选择器字符串。便于后面的切分
 
   var WHITESPACE = /\s*([\s>=+~(),]|^|$)\s*/g;
-  var ADD_STAR = /([\s>+~,]|^)([:#.])/g;
+  var ADD_STAR = /([\s>+~,]|^)([:#.@])/g;
   function parseSelector(selector){
   	return selector
   	       .replace(WHITESPACE, '$1')
@@ -65,28 +304,17 @@ var cherry = (function(document){
   // 分别为后代选择器，id选择器，类选择器，伪类选择器，选择目标元素以后的兄弟元素选择器，选择目标元素
   // 下一个相邻元素的选择器，子选择器。
   var STANDAR_SELECT = /^[^\s>~+]/;
-  var CHOP = /[\s>+~#.:]|[^\s>+~#.:]+/g;
+  var CHOP = /[\s>+~#.:()@]|[^\s>+~#.:()@]+/g;
   function chop(selector){
   	if(STANDAR_SELECT.test(selector)) selector = ' ' + selector;
   	return selector.match(CHOP);
   }
   //-----------------------Dom 元素获取常用属性（方法）--------------------------------
   //IE8及以下只支持children属性，不支持previousElementSibling，nextElementSibling，
-  //lastElementChild, firstElementChild, childElementCount属性。因此需要对这些属性进行
-  //浏览器兼容处理
-  // ************* 注意下面是一个错误示范 **********************
-  // addGeter静态方法应该添加到Node构造函数上面，比应该添加到HTMLElement上
-  // HTMLElement.addGetter = function(name, func){
-  //     Object.defineProperty(this.prototype, name, {
-  //       configuable : true,
-  //       enumerable  : false,
-  //       get         : function(){
-  //             return func(this);
-  //       }
-  //     });
-  //     return this;
-  // };
-  // **********************以上是错误示范*************************
+  //lastElementChild, firstElementChild, childElementCount，children属性。
+  //因此在不支持这些属性的浏览器中需要对这些属性进行定义
+  //addGetter： 是在Node上面添加一个addGetter的静态方法，用来向Node原型上添加get属性，get属性的返回值
+  //是在Node实例上条用func的返回值。
   Node.addGetter = function(name, func){
       Object.defineProperty(this.prototype, name, {
         configuable : true,
@@ -118,6 +346,12 @@ var cherry = (function(document){
     var element = self;
     while(element && (element = element.nextSibling) && !element.isElementNode) continue;
     return element;
+  });
+  Node.addGetter('afterEleSiblings', function(self){
+    var elements = [];
+    while((self = self.nextEleSibling) && self.isElementNode ) elements.push(self);
+    return elements;
+
   });
   HTMLElement.addGetter('firstEleChild', function(self){
     if(self.firstElementChild) return self.firstElementChild;
@@ -160,7 +394,6 @@ var cherry = (function(document){
   }); 
   // textCont用来获取节点中所有文本内容
   //chrome 支持innerText和textContent。 fireFox仅支持textContent。
-  //document.textContent === null
   // ******************innerText 和 textContent的区别和相同点 ***********************
   // 1. textContent will return all tag's contents, including script and style, 
   // but innerText will not!
@@ -181,74 +414,7 @@ var cherry = (function(document){
     return content;
   }
  // ---------------------获取DOM元素常用函数结束---------------------------
- // ---------------------选择器对象---------------------------------------
-  var $selectors = {};
-  $selectors['#'] = function(result, from, id){
-  	for(var i = 0; i < from.length; i++){
-  		if(from[i].id == id) result.push(from[i]);
-  	}
-  	return result || [];
-  };
-  //类选择器：
-  $selectors['.'] = function(result, from, className){
-  	var CLASS_NAME = new RegExp('(^|\\s)' + className + '(\\s|$)');
-    var i, element;
-  	for(i = 0; (element = from[i]); i++ ){
-  		if(CLASS_NAME.test(element.className)) result.push(element);
-  	}
-  	return result || [];
-  };
-  //后代选择器
-  $selectors[' '] = function(result, from, tagName){
-  	for(var i = 0; i < from.length; i++){
-      from[i] = (from[i] == document)? document.documentElement : from[i];
-      if(tagName === '*'){
-        Array.prototype.push.apply(result, from[i].desEleNodes);
-      } else {
-        for(var j = 0; j < from[i].desEleNodes.length; j++ ){
-          if(from[i].desEleNodes[j].tagName.toLowerCase() == tagName) 
-            result.push(from[i].desEleNodes[j]);
-        }
-      }                   
-    }
-    return result || [];
-  };
-  //伪类选择器，
-  $selectors[':'] = function($result, $from, $pseudoClass, $arguments){
-    var $test = null;
-    if(pseudoClasses[$pseudoClass]) $test = pseudoClasses[$pseudoClass];
-    for(var i = 0, len = $from.length; i < len; i++ ){
-      if($test($from[i])) $result.push($from[i]);
-    }
-    return $result;
-  };
-  //------------------------选择器对象结束--------------------------------
-  //------------------------pseudo-classes-------------------------------
-  var pseudoClasses = {};
-  // link pseudoClass 用来判断一个元素是否是：link伪类选择器，返回值为：true or false；
-  pseudoClasses['link'] = function($element){
-    var links = document.links;
-    return Array.prototype.some.call(links, function(ele){
-      return ele === $element;
-    });
-  };
-  //下面几个伪类属于css1选择器，但是jQuery中没有实现这些选择器?
-  pseudoClasses['visited'] = function($element){}
-  pseudoClasses['active'] = function($element){}
-  pseudoClasses['hover'] = function($element){}
-  pseudoClasses['first-letter'] = function($element){}
-  pseudoClasses['first-line'] = function($element){}
-  //------------------------pseudo-calsses end---------------------------
-  //select函数用来选择在指定token，filter下的dom元素
-  //token是选择器的标签，如"#"是id选择器，"."是类选择器，">"是子选择器等
-  //filter是元素标签名，tagName。或者id，或者className等
-  function select(from, token, filter){
-  	var results = [];
-  	if($selectors[token]){
-  		$selectors[token](results, from, filter);
-  	}
-  	return results;
-  }
+ //返回cherry主函数。
   return cherry;
 })(document);
 

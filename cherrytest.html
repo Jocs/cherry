@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<script src='cherry.js'></script>
+	<script>
+		window.onload = function(){
+		    var nodes = document.querySelectorAll('a');
+		   	Array.prototype.forEach.call(nodes, function(node){
+		   		console.log(node).status;
+		   	});
+		
+		};
+	// window.onload = function(){
+	// 	var nodes = document.querySelectorAll('.hello :link');
+	// 	Array.prototype.forEach.call(nodes, function(node){
+	// 		node.style.color = 'red';
+	// 	});
+	// }
+	 </script>
+</head>
+<body>
+	<div class='hello'>nice
+		<a id="outer"></a>
+		<p id='only'>only</p>
+		<div id='inner'>to meet you!</div>
+		<a href="www.baidu.com">link</a>
+	</div>
+	<div class='haha' lang = 'en zh'>hahaha</div>
+	<div id="second">second
+		<span id="onlyChild">hahahaspan</span>
+	</div>
+</body>
+
+</html>
