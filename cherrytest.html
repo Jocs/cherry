@@ -6,23 +6,18 @@
 	<script src='cherry.js'></script>
 	<script>
 		window.onload = function(){
-		    var nodes = document.querySelectorAll('a');
+		    var nodes = cherry('#nth p:nth-last-of-type(2n + 3)');
+		    console.log(nodes)
 		   	Array.prototype.forEach.call(nodes, function(node){
-		   		console.log(node).status;
+		   		node.style.color = 'red';
 		   	});
 		
 		};
-	// window.onload = function(){
-	// 	var nodes = document.querySelectorAll('.hello :link');
-	// 	Array.prototype.forEach.call(nodes, function(node){
-	// 		node.style.color = 'red';
-	// 	});
-	// }
 	 </script>
 </head>
 <body>
 	<div class='hello'>nice
-		<a id="outer"></a>
+		<a href="#second"id="outer">hello</a>
 		<p id='only'>only</p>
 		<div id='inner'>to meet you!</div>
 		<a href="www.baidu.com">link</a>
@@ -30,6 +25,18 @@
 	<div class='haha' lang = 'en zh'>hahaha</div>
 	<div id="second">second
 		<span id="onlyChild">hahahaspan</span>
+	</div>
+	<p>woshi p</p>
+	<div id="nth">\
+		<div>woshidiveeee</div>
+		<p>1</p>
+		<p>2</p>
+		<p>3</p>
+		<div>我还是一个div</div>
+		<p>4</p>
+		<p>5</p>
+		<p>6</p>
+		<p>7</p>
 	</div>
 </body>
 

@@ -198,14 +198,93 @@ var cherry = (function(document){
   //子考虑元素节点
   pseudoClasses['only-child'] = function($element){
     return !$element.prevEleSibling && !$element.nextEleSibling;
-  }
-
+  };
+  //:empty 用来选择没有子元素（元素节点）的元素
+  pseudoClasses['empty'] = function($element){
+    return $element.childrenEle.length === 0 ? true : false;
+  };
+  // :target 用来选择某个元素的target元素，只有在跳转后才会表现出特定样式，也就是说
+  //只有点击了连接后，target元素的样式才会生效(现在的问题是，刚点击后在target元素上
+  // 设置的样式还不能够生效，只有刷新页面才能够生效)
+  pseudoClasses['target'] = function($element){
+    return $element.id && $element.id === location.hash.slice(1);
+  };
+  pseudoClasses['enable'] = function($element){
+    return $element.disabled === false;
+  };
+  pseudoClasses['disabled'] = function($element){
+    return $element.disabled;
+  };
+  pseudoClasses['checked'] = function($element){
+    return $element.checked;
+  };
+  pseudoClasses['indeterminate'] = function($element){
+    return $element.indeterminate;
+  };
+  pseudoClasses['not'] = function($element, $argument){
+    var negted = cherry($argument);
+    for(var i = 0; i < negted.length; i ++){
+      if($element === negted[i]) return false;
+    }
+    return true;
+  };
+  pseudoClasses['nth-child'] = function($element, $argument){
+    return nthChild($element, $argument, 'nextEleSibling');
+  };
+  pseudoClasses['nth-last-child'] = function($element, $argument){
+    return nthChild($element, $argument, 'prevEleSibling');
+  };
+  pseudoClasses['nth-of-type'] = function($element, $argument){
+    return nthChild($element, $argument, 'nextEleSibling', 'nthType');
+  };
+  pseudoClasses['nth-last-of-type'] = function($element, $argument){
+    return nthChild($element, $argument, 'prevEleSibling', 'nthType');
+  };
   //jQuery中的contains 伪类选择器的实现
   pseudoClasses['contains'] = function($element, $text){
     return new RegExp($text.slice(1,-1)).test($element.textCont);
   };
   
-  
+  function nthChild($element, $argument, $travese, type){
+    var multi, step, children = [], tagName = $element.tagName.toLowerCase();
+    switch($argument){
+      case 'n': return true; break;
+      case 'even': $argument = '2n'; break;
+      case 'odd' : $argument = '2n+1'; break;
+    }
+    if(type && type == 'nthType'){
+      Array.prototype.forEach.call( $element.parentNode.childrenEle, function(ele){
+        if(ele.tagName.toLowerCase() === $element.tagName.toLowerCase())
+          children.push(ele);
+      });
+    } else children = $element.parentNode.childrenEle;
+    function _checkIndex($index){
+      $index =  Object.prototype.toString.call($travese).indexOf('Function') &&
+             $travese === 'prevEleSibling' ? children.length - $index : $index -1;
+      return children[$index] === $element;
+    }
+
+    if(!isNaN($argument)) 
+      return _checkIndex($argument);
+    $argument = $argument.split('n');
+    multi = parseInt($argument[0]);
+    step = parseInt($argument[1]);
+    if(isNaN(step)) step = 0;
+    if(isNaN(multi)) multi = 1;
+    if(multi == 0) return _checkIndex(step);
+    var count = 1;
+    if(type && type == 'nthType') {
+      while($element = $element[$travese]) {
+        if($element.tagName.toLowerCase() == tagName) count++;
+      }
+    } else {
+      while($element = $element[$travese]) count++;
+    }
+    console.log(count)
+    if(multi == 1) 
+      return children.length - count + 1 >= step;
+    return count % multi === step % multi && children.length - count + 1 >= step;
+  }
   //------------------------pseudo-calsses end---------------------------
 
   /*属性选择器相关的方法*/
