@@ -1,8 +1,8 @@
 /*cherry is a css selector*/
-// this main file include css level1 css selcetor
+// this main file include css level1 \level2\level3 css selcetor
 // create by luoran 
 var cherry = (function(document){
-  //---------------------the main function---------------------------------------
+  //-----------------------------------the main function---------------------------------------
   var cherry = function($selector, $from){
   	var COMMA = /\s*(?:,)\s*/, 
         results = [],
@@ -18,7 +18,7 @@ var cherry = (function(document){
   		var chopedArray = chop(selectors[i]), 
           j = 0, token, filter, arguments = '',
           cacheSelector = '', from = $from;
-  		console.log(chopedArray)
+          
   		while(chopedArray[j]){
   			token = chopedArray[j++];
   			filter = chopedArray[j++];
@@ -168,8 +168,7 @@ var cherry = (function(document){
   pseudoClasses['last-child'] = function($element){
     return !$element.nextEleSibling;
   };
-  // root选择器问题：$from中不可能有document.documentElement 啊？？？
-  //root 选择器暂时还不能够使用
+  // root选择器问题：$from中不可能有document.documentElement 啊
   pseudoClasses['root'] = function($element){
     return $element === $element.ownerDocument.documentElement;
   };
@@ -280,7 +279,7 @@ var cherry = (function(document){
     } else {
       while($element = $element[$travese]) count++;
     }
-    console.log(count)
+   
     if(multi == 1) 
       return children.length - count + 1 >= step;
     return count % multi === step % multi && children.length - count + 1 >= step;
@@ -346,7 +345,7 @@ var cherry = (function(document){
     return new RegExp($value + '$').test($attribute);
   };
 
-  //monkey-patch
+  //monkey-patch rewrite parseSelector
   var _parseSelector = parseSelector;
   parseSelector = function($selector){
     return _parseSelector(AttributeSelector.parse($selector));
